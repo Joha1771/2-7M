@@ -1,22 +1,26 @@
 import React, { useState } from "react";
+import { Link } from "react-router";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="w-full bg-white border-b border-gray-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6">
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-100">
+      <div className="px-6 mx-auto max-w-7xl">
         {/* ─── DESKTOP LAYOUT ─── */}
-        <div className="hidden md:flex items-center gap-8 h-16">
+        <div className="items-center hidden h-16 gap-8 md:flex">
           {/* Logo */}
           <a href="/" className="flex-shrink-0 text-black no-underline">
             {/* INSERT LOGO SVG HERE */}
-            <span className="font-black text-xl tracking-tight">SHOP.CO</span>
+            <span className="text-xl font-black tracking-tight">SHOP.CO</span>
           </a>
 
           {/* Nav */}
-          <nav className="flex items-center gap-6 flex-shrink-0">
-            <div className="flex items-center gap-1 text-sm cursor-pointer hover:opacity-60 transition-opacity">
+          <nav className="flex items-center flex-shrink-0 gap-6">
+            <Link
+              to="/shop"
+              className="flex items-center gap-1 text-sm transition-opacity cursor-pointer hover:opacity-60"
+            >
               <span>Shop</span>
               {/* INSERT CHEVRON DOWN SVG HERE */}
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -28,29 +32,29 @@ const Header = () => {
                   strokeLinejoin="round"
                 />
               </svg>
-            </div>
-            <a
-              href="/sale"
-              className="text-sm text-black no-underline hover:opacity-60 transition-opacity whitespace-nowrap"
+            </Link>
+            <Link
+              to="/sale"
+              className="text-sm text-black no-underline transition-opacity hover:opacity-60 whitespace-nowrap"
             >
               On Sale
-            </a>
-            <a
-              href="/new-arrivals"
-              className="text-sm text-black no-underline hover:opacity-60 transition-opacity whitespace-nowrap"
+            </Link>
+            <Link
+              to="/"
+              className="text-sm text-black no-underline transition-opacity hover:opacity-60 whitespace-nowrap"
             >
               New Arrivals
-            </a>
-            <a
-              href="/brands"
-              className="text-sm text-black no-underline hover:opacity-60 transition-opacity whitespace-nowrap"
+            </Link>
+            <Link
+              to="/"
+              className="text-sm text-black no-underline transition-opacity hover:opacity-60 whitespace-nowrap"
             >
               Brands
-            </a>
+            </Link>
           </nav>
 
           {/* Search */}
-          <div className="flex-1 flex items-center gap-3 bg-gray-100 rounded-full px-4 h-10 min-w-0">
+          <div className="flex items-center flex-1 h-10 min-w-0 gap-3 px-4 bg-gray-100 rounded-full">
             {/* INSERT SEARCH SVG HERE */}
             <svg
               width="16"
@@ -76,14 +80,14 @@ const Header = () => {
             <input
               type="text"
               placeholder="Search for products..."
-              className="flex-1 bg-transparent border-none outline-none text-sm text-black placeholder-gray-400 min-w-0"
+              className="flex-1 min-w-0 text-sm text-black placeholder-gray-400 bg-transparent border-none outline-none"
             />
           </div>
 
           {/* Icons */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center flex-shrink-0 gap-3">
             <button
-              className="p-1 bg-transparent border-none cursor-pointer text-black hover:opacity-60 transition-opacity flex items-center justify-center"
+              className="flex items-center justify-center p-1 text-black transition-opacity bg-transparent border-none cursor-pointer hover:opacity-60"
               aria-label="Cart"
             >
               {/* INSERT CART SVG HERE */}
@@ -114,7 +118,7 @@ const Header = () => {
               </svg>
             </button>
             <button
-              className="p-1 bg-transparent border-none cursor-pointer text-black hover:opacity-60 transition-opacity flex items-center justify-center"
+              className="flex items-center justify-center p-1 text-black transition-opacity bg-transparent border-none cursor-pointer hover:opacity-60"
               aria-label="Account"
             >
               {/* INSERT ACCOUNT SVG HERE */}
@@ -138,10 +142,10 @@ const Header = () => {
         </div>
 
         {/* ─── MOBILE LAYOUT ─── */}
-        <div className="flex md:hidden items-center justify-between h-14">
+        <div className="flex items-center justify-between md:hidden h-14">
           {/* Hamburger */}
           <button
-            className="p-1 bg-transparent border-none cursor-pointer text-black flex items-center"
+            className="flex items-center p-1 text-black bg-transparent border-none cursor-pointer"
             aria-label="Open menu"
             onClick={() => setMenuOpen(!menuOpen)}
           >
@@ -159,13 +163,13 @@ const Header = () => {
           {/* Logo */}
           <a href="/" className="text-black no-underline">
             {/* INSERT LOGO SVG HERE */}
-            <span className="font-black text-lg tracking-tight">SHOP.CO</span>
+            <span className="text-lg font-black tracking-tight">SHOP.CO</span>
           </a>
 
           {/* Icons */}
           <div className="flex items-center gap-2">
             <button
-              className="p-1 bg-transparent border-none cursor-pointer text-black flex items-center"
+              className="flex items-center p-1 text-black bg-transparent border-none cursor-pointer"
               aria-label="Search"
             >
               {/* INSERT SEARCH SVG HERE */}
@@ -186,7 +190,7 @@ const Header = () => {
               </svg>
             </button>
             <button
-              className="p-1 bg-transparent border-none cursor-pointer text-black flex items-center"
+              className="flex items-center p-1 text-black bg-transparent border-none cursor-pointer"
               aria-label="Cart"
             >
               {/* INSERT CART SVG HERE */}
@@ -217,7 +221,7 @@ const Header = () => {
               </svg>
             </button>
             <button
-              className="p-1 bg-transparent border-none cursor-pointer text-black flex items-center"
+              className="flex items-center p-1 text-black bg-transparent border-none cursor-pointer"
               aria-label="Account"
             >
               {/* INSERT ACCOUNT SVG HERE */}
@@ -242,10 +246,12 @@ const Header = () => {
 
         {/* Mobile dropdown menu */}
         {menuOpen && (
-          <nav className="flex md:hidden flex-col border-t border-gray-100 py-2">
-            <div className="flex items-center gap-2 text-sm text-black py-3 border-b border-gray-50 cursor-pointer">
-              Shop
-              {/* INSERT CHEVRON DOWN SVG HERE */}
+          <nav className="flex flex-col py-2 border-t border-gray-100 md:hidden">
+            <Link
+              to="/shop"
+              className="flex items-center gap-1 text-sm transition-opacity hover:opacity-60"
+            >
+              <span>Shop</span>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path
                   d="M2 4L6 8L10 4"
@@ -255,22 +261,22 @@ const Header = () => {
                   strokeLinejoin="round"
                 />
               </svg>
-            </div>
-            <a
-              href="/sale"
-              className="text-sm text-black no-underline py-3 border-b border-gray-50"
+            </Link>
+            <Link
+              to="/sale"
+              className="py-3 text-sm text-black no-underline border-b border-gray-50"
             >
               On Sale
-            </a>
-            <a
-              href="/new-arrivals"
-              className="text-sm text-black no-underline py-3 border-b border-gray-50"
+            </Link>
+            <Link
+              to="/new-arrivals"
+              className="py-3 text-sm text-black no-underline border-b border-gray-50"
             >
               New Arrivals
-            </a>
-            <a href="/brands" className="text-sm text-black no-underline py-3">
+            </Link>
+            <Link to="/brands" className="py-3 text-sm text-black no-underline">
               Brands
-            </a>
+            </Link>
           </nav>
         )}
       </div>

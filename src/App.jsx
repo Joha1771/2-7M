@@ -16,6 +16,7 @@ import ProductSections from "./sections/ProductSection";
 import AdminLogin from "./Admin/AdminLogin";
 import AdminPage from "./Admin/AdminPage";
 import ProtectedRoute from "./Admin/ProtectedRoute";
+import FilterSection from "./sections/FilterSection";
 
 // Функция для быстрой проверки токена
 const isAuthenticated = () => !!localStorage.getItem("admin_token");
@@ -56,6 +57,15 @@ const router = createBrowserRouter([
   {
     path: "*",
     element: <Navigate to="/" replace />,
+  },
+  {
+    path: "/shop",
+    element: (
+      <>
+        <Header />
+        <FilterSection />
+      </>
+    ),
   },
 ]);
 
