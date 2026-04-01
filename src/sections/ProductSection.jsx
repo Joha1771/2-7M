@@ -4,17 +4,21 @@ import { motion } from "framer-motion";
 
 /* ⭐ STAR RATING */
 const StarRating = ({ rating }) => {
+  // Ensure rating is always a plain number
+  const safeRating =
+    typeof rating === "object" || isNaN(rating) ? 0 : Number(rating);
+
   return (
     <div className="flex items-center gap-1">
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => {
-          const filled = rating >= star;
-          const half = !filled && rating >= star - 0.5;
+          const filled = safeRating >= star;
+          const half = !filled && safeRating >= star - 0.5;
 
           return (
             <svg key={star} width="14" height="14" viewBox="0 0 14 14">
               <defs>
-                <linearGradient id={`half-${star}-${rating}`}>
+                <linearGradient id={`half-${star}-${safeRating}`}>
                   <stop offset="50%" stopColor="#FFC633" />
                   <stop offset="50%" stopColor="#D1D5DB" />
                 </linearGradient>
@@ -25,7 +29,7 @@ const StarRating = ({ rating }) => {
                   filled
                     ? "#FFC633"
                     : half
-                      ? `url(#half-${star}-${rating})`
+                      ? `url(#half-${star}-${safeRating})`
                       : "#D1D5DB"
                 }
               />
@@ -33,40 +37,48 @@ const StarRating = ({ rating }) => {
           );
         })}
       </div>
-      <span className="text-xs text-gray-500">{rating}/5</span>
+      <span className="text-xs text-gray-500">{safeRating}/5</span>
     </div>
   );
 };
 
 /* 🛒 PRODUCT CARD */
 const ProductCard = ({ product }) => {
-  const hasDiscount = product.discount > 0;
-  const originalPrice = product.price;
-
-  const discountedPrice = hasDiscount
-    ? Math.round(originalPrice * (1 - product.discount / 100))
-    : null;
-
-  const rating =
-    product.rank > 0
-      ? product.rank
-      : parseFloat((Math.random() * 1.5 + 3.5).toFixed(1));
-
-  const hasPicture = product.pictures?.length > 0;
-
-  // ✅ Исправление: name может быть объектом {uz, ru, en}
+  // Safely extract name from string or localized object
   const getName = (name) => {
     if (!name) return "No name";
     if (typeof name === "object")
       return name.uz || name.ru || name.en || "No name";
-    return name;
+    return String(name);
   };
 
-  // ✅ Исправление: price/discount тоже могут быть объектами
+  // Safely extract number — returns 0 if value is an object or NaN
   const getNumber = (val) => {
-    if (typeof val === "object" && val !== null) return 0;
-    return Number(val) || 0;
+    if (val === null || val === undefined) return 0;
+    if (typeof val === "object") return 0;
+    const n = Number(val);
+    return isNaN(n) ? 0 : n;
   };
+
+  const price = getNumber(product.price);
+  const discount = getNumber(product.discount);
+
+  const hasDiscount = discount > 0;
+  const discountedPrice = hasDiscount
+    ? Math.round(price * (1 - discount / 100))
+    : null;
+
+  // rank could be an object on some API responses — guard against it
+  const rawRank = product.rank;
+  const rankNum =
+    typeof rawRank === "object" || rawRank === null || rawRank === undefined
+      ? 0
+      : Number(rawRank);
+  const rating =
+    rankNum > 0 ? rankNum : parseFloat((Math.random() * 1.5 + 3.5).toFixed(1));
+
+  const hasPicture =
+    Array.isArray(product.pictures) && product.pictures.length > 0;
 
   return (
     <div className="bg-[#F0EEEE] rounded-[20px] overflow-hidden flex flex-col h-full cursor-pointer hover:-translate-y-1 hover:shadow-lg transition">
@@ -95,17 +107,13 @@ const ProductCard = ({ product }) => {
             {hasDiscount ? (
               <>
                 <span className="text-lg font-bold">${discountedPrice}</span>
-                <span className="text-gray-400 line-through">
-                  ${getNumber(originalPrice)}
-                </span>
+                <span className="text-gray-400 line-through">${price}</span>
                 <span className="text-red-500 text-[10px] bg-red-50 px-2 py-0.5 rounded-full font-medium">
-                  -{getNumber(product.discount)}%
+                  -{discount}%
                 </span>
               </>
             ) : (
-              <span className="text-lg font-bold">
-                ${getNumber(originalPrice)}
-              </span>
+              <span className="text-lg font-bold">${price}</span>
             )}
           </div>
         </div>
@@ -120,7 +128,6 @@ const ProductSection = ({ title, products, onToggle, showAll }) => {
     <section className="py-10">
       <h2 className="mb-8 text-3xl font-black text-center">{title}</h2>
 
-      {/* Добавлены классы items-stretch */}
       <motion.div
         layout
         className="grid items-stretch grid-cols-2 gap-4 mb-8 md:grid-cols-4"
@@ -132,7 +139,7 @@ const ProductSection = ({ title, products, onToggle, showAll }) => {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="h-full" // Важно для motion-контейнера
+            className="h-full"
           >
             <ProductCard product={product} />
           </motion.div>
@@ -162,15 +169,21 @@ export default function ProductSections() {
     const fetchProducts = async () => {
       try {
         const res = await axiosInstance.get("/products");
-        const data = res.data.products || res.data; // Обработка разных форматов ответа
+        const data = res.data.products || res.data;
 
-        const validProducts = (Array.isArray(data) ? data : []).filter(
-          (p) =>
-            p.pictures?.length > 0 &&
-            p.name &&
-            p.name !== "string" &&
-            p.price > 0,
-        );
+        const validProducts = (Array.isArray(data) ? data : []).filter((p) => {
+          // Safely check name — could be a string or localized object
+          const name = p.name;
+          const hasName =
+            name &&
+            (typeof name === "object"
+              ? name.uz || name.ru || name.en
+              : name !== "string" && String(name).trim() !== "");
+
+          const price = typeof p.price === "object" ? 0 : Number(p.price) || 0;
+
+          return p.pictures?.length > 0 && hasName && price > 0;
+        });
 
         setProducts(validProducts);
       } catch (err) {

@@ -14,13 +14,18 @@ const STATUS_COLORS = {
 /* ── ORDER DETAIL MODAL ── */
 function OrderDetail({ order, onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70">
-      <div className="bg-[#1a1a1a] rounded-3xl p-6 w-full max-w-lg border border-white/10 max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end justify-center px-0 sm:items-center sm:px-4 bg-black/70">
+      <div className="bg-[#1a1a1a] rounded-t-3xl sm:rounded-3xl p-6 w-full sm:max-w-lg border border-white/10 max-h-[85vh] overflow-y-auto">
+        {/* Pull handle (mobile) */}
+        <div className="flex justify-center mb-4 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-white">Order Details</h3>
           <button
             onClick={onClose}
-            className="text-xl leading-none text-gray-500 transition hover:text-white"
+            className="flex items-center justify-center w-8 h-8 text-2xl leading-none text-gray-500 transition hover:text-white"
           >
             ×
           </button>
@@ -237,8 +242,8 @@ export function OrdersList() {
         />
       )}
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      {/* Filters — horizontal scroll on mobile */}
+      <div className="flex gap-2 px-4 pb-1 mb-4 -mx-4 overflow-x-auto scrollbar-hide lg:mx-0 lg:px-0 lg:flex-wrap">
         {[
           "all",
           "pending",
@@ -250,14 +255,14 @@ export function OrdersList() {
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filterStatus === s ? "bg-white text-black" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition ${filterStatus === s ? "bg-white text-black" : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
           >
             {s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
         ))}
         <button
           onClick={fetch_}
-          className="ml-auto px-4 py-1.5 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition text-xs"
+          className="flex-shrink-0 ml-auto px-4 py-1.5 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition text-xs"
         >
           ↻ Refresh
         </button>
@@ -295,56 +300,61 @@ export function OrdersList() {
                   <button
                     onClick={() => handleDelete(o._id)}
                     disabled={deletingId === o._id}
-                    className="flex-1 py-2 text-sm font-bold text-white transition bg-red-500 rounded-xl hover:bg-red-400 disabled:opacity-50"
+                    className="flex-1 py-2.5 text-sm font-bold text-white bg-red-500 rounded-xl hover:bg-red-400 disabled:opacity-50 transition"
                   >
                     {deletingId === o._id ? "Deleting..." : "Delete"}
                   </button>
                   <button
                     onClick={() => setConfirmDelete(null)}
-                    className="flex-1 py-2 text-sm text-gray-300 transition bg-white/5 rounded-xl hover:bg-white/10"
+                    className="flex-1 py-2.5 text-sm text-gray-300 bg-white/5 rounded-xl hover:bg-white/10 transition"
                   >
                     Cancel
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-4 flex items-center gap-4 hover:border-white/10 transition">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <p className="font-mono text-sm font-semibold text-white">
-                      #{o._id?.slice(-8) || "N/A"}
+              <div className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-4 hover:border-white/10 transition">
+                {/* Top row */}
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <p className="font-mono text-sm font-semibold text-white">
+                        #{o._id?.slice(-8) || "N/A"}
+                      </p>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs border ${STATUS_COLORS[o.status] || STATUS_COLORS.pending}`}
+                      >
+                        {o.status || "pending"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 truncate">
+                      {o.userName || o.user?.name || "Unknown customer"}
                     </p>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs border ${STATUS_COLORS[o.status] || STATUS_COLORS.pending}`}
-                    >
-                      {o.status || "pending"}
-                    </span>
+                    <p className="text-gray-500 text-xs mt-0.5">
+                      {o.totalPrice ? `$${o.totalPrice}` : "—"}
+                      {o.createdAt &&
+                        ` · ${new Date(o.createdAt).toLocaleDateString()}`}
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-400">
-                    {o.userName || o.user?.name || "Unknown customer"}
-                  </p>
-                  <p className="text-gray-500 text-xs mt-0.5">
-                    {o.totalPrice ? `$${o.totalPrice}` : "—"}
-                    {o.createdAt &&
-                      ` · ${new Date(o.createdAt).toLocaleDateString()}`}
-                  </p>
                 </div>
-                <div className="flex flex-wrap justify-end flex-shrink-0 gap-2">
+
+                {/* Action buttons — full width on mobile */}
+                <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedOrder(o)}
-                    className="px-3 py-1.5 bg-white/5 text-gray-300 rounded-lg text-xs hover:bg-white/10 transition"
+                    className="flex-1 px-3 py-2 text-xs text-center text-gray-300 transition rounded-lg sm:flex-none bg-white/5 hover:bg-white/10"
                   >
                     View
                   </button>
                   <button
                     onClick={() => setUpdatingOrder(o)}
-                    className="px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-500/20 transition"
+                    className="flex-1 px-3 py-2 text-xs font-medium text-center text-blue-400 transition rounded-lg sm:flex-none bg-blue-500/10 hover:bg-blue-500/20"
                   >
                     Status
                   </button>
                   <button
                     onClick={() => setConfirmDelete(o._id)}
-                    className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-xs font-medium hover:bg-red-500/20 transition"
+                    className="flex-1 px-3 py-2 text-xs font-medium text-center text-red-400 transition rounded-lg sm:flex-none bg-red-500/10 hover:bg-red-500/20"
                   >
                     Delete
                   </button>
