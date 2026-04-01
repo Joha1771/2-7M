@@ -1,9 +1,62 @@
 import { useState, useEffect } from "react";
 import axios from "../config/axios";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 
-/* ── STARS ── */
+// ── Validation schema ──────────────────────────────────────────────────────────
+const reviewSchema = Yup.object({
+  productId: Yup.string()
+    .min(10, "Product ID looks too short")
+    .required("Product ID is required"),
+
+  userName: Yup.string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name is too long")
+    .required("User name is required"),
+
+  rating: Yup.number()
+    .min(1, "Rating must be at least 1")
+    .max(5, "Rating cannot exceed 5")
+    .required("Rating is required"),
+
+  comment: Yup.string()
+    .min(5, "Comment must be at least 5 characters")
+    .max(500, "Comment is too long (max 500 chars)")
+    .required("Comment is required"),
+});
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function FieldError({ msg }) {
+  if (!msg) return null;
+  return <p className="mt-1.5 text-xs text-red-400">{msg}</p>;
+}
+
+const getProductInfo = (r) => {
+  if (r.product && typeof r.product === "object") {
+    const name = r.product.name;
+    if (typeof name === "string") return name;
+    if (name && typeof name === "object")
+      return String(name.uz || name.ru || name.en || "");
+    return r.product._id ? String(r.product._id) : "N/A";
+  }
+  if (typeof r.product === "string") return r.product;
+  if (r.productId) return String(r.productId);
+  return "N/A";
+};
+
+const getUserName = (r) => {
+  if (r.userName && typeof r.userName === "string") return r.userName;
+  if (r.user && typeof r.user === "object") {
+    const name = r.user.name;
+    if (typeof name === "string") return name;
+    if (name && typeof name === "object")
+      return String(name.uz || name.ru || name.en || "Anonymous");
+  }
+  return "Anonymous";
+};
+
+// ── Stars display ──────────────────────────────────────────────────────────────
 const Stars = ({ rating }) => {
-  // Guard: rating could be an object from API
   const safeRating =
     typeof rating === "object" || rating === null || rating === undefined
       ? 0
@@ -23,151 +76,186 @@ const Stars = ({ rating }) => {
   );
 };
 
-/* ── SAFE HELPERS ── */
-const getProductInfo = (r) => {
-  if (r.product && typeof r.product === "object") {
-    const name = r.product.name;
-    if (typeof name === "string") return name;
-    if (name && typeof name === "object") {
-      return String(name.uz || name.ru || name.en || "");
-    }
-    // _id can also be a Mongo ObjectId object — always stringify
-    return r.product._id ? String(r.product._id) : "N/A";
-  }
-  if (typeof r.product === "string") return r.product;
-  if (r.productId) return String(r.productId);
-  return "N/A";
-};
+// ── Star picker for the form ───────────────────────────────────────────────────
+function StarPicker({ value, onChange, onBlur }) {
+  const [hovered, setHovered] = useState(0);
 
-const getUserName = (r) => {
-  if (r.userName && typeof r.userName === "string") return r.userName;
-  if (r.user && typeof r.user === "object") {
-    const name = r.user.name;
-    if (typeof name === "string") return name;
-    if (name && typeof name === "object") {
-      return String(name.uz || name.ru || name.en || "Anonymous");
-    }
-  }
-  return "Anonymous";
-};
+  return (
+    <div className="flex gap-1" onBlur={onBlur}>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onChange(s)}
+          onMouseEnter={() => setHovered(s)}
+          onMouseLeave={() => setHovered(0)}
+          className="focus:outline-none"
+          aria-label={`${s} star`}
+        >
+          <svg width="28" height="28" viewBox="0 0 14 14">
+            <path
+              d="M7 1l1.545 3.13 3.455.502-2.5 2.436.59 3.44L7 8.885l-3.09 1.623.59-3.44L2 4.632l3.455-.502L7 1z"
+              fill={(hovered || value) >= s ? "#FFC633" : "#374151"}
+              className="transition-colors"
+            />
+          </svg>
+        </button>
+      ))}
+      <span className="self-center ml-2 text-sm text-gray-400">
+        {value ? `${value}/5` : "Select"}
+      </span>
+    </div>
+  );
+}
 
-/* ── ADD REVIEW ── */
+// ── ADD REVIEW ─────────────────────────────────────────────────────────────────
 export function AddReview({ onSuccess }) {
-  const [form, setForm] = useState({
-    productId: "",
-    rating: "5",
-    comment: "",
-    userName: "",
+  const [serverMsg, setServerMsg] = useState(null);
+
+  const inputBase =
+    "w-full bg-[#0f0f0f] border text-white placeholder-gray-600 rounded-xl px-4 py-3 focus:outline-none transition text-sm";
+
+  const formik = useFormik({
+    initialValues: {
+      productId: "",
+      userName: "",
+      rating: 5,
+      comment: "",
+    },
+    validationSchema: reviewSchema,
+    onSubmit: async (values, { resetForm, setSubmitting }) => {
+      setServerMsg(null);
+      try {
+        await axios.post("/reviews", {
+          ...values,
+          rating: Number(values.rating),
+        });
+        setServerMsg({ type: "success", text: "Review added!" });
+        resetForm();
+        onSuccess?.();
+      } catch (err) {
+        setServerMsg({
+          type: "error",
+          text: err.response?.data?.message || err.message,
+        });
+      } finally {
+        setSubmitting(false);
+      }
+    },
   });
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMsg(null);
-    try {
-      await axios.post("/reviews", { ...form, rating: Number(form.rating) });
-      setMsg({ type: "success", text: "Review added!" });
-      setForm({ productId: "", rating: "5", comment: "", userName: "" });
-      onSuccess?.();
-    } catch (err) {
-      setMsg({
-        type: "error",
-        text: err.response?.data?.message || err.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const inputClass =
-    "w-full bg-[#0f0f0f] border border-white/10 text-white placeholder-gray-600 rounded-xl px-4 py-3 focus:outline-none focus:border-white/30 transition text-sm";
+  const e = (field) =>
+    formik.touched[field] && formik.errors[field] ? formik.errors[field] : null;
 
   return (
     <div className="bg-[#1a1a1a] rounded-2xl p-4 sm:p-6 border border-white/5">
       <h3 className="mb-5 text-lg font-bold text-white">Add Review</h3>
 
-      {msg && (
+      {serverMsg && (
         <div
-          className={`mb-4 px-4 py-2.5 rounded-xl text-sm ${
-            msg.type === "success"
-              ? "bg-green-500/10 text-green-400 border border-green-500/20"
-              : "bg-red-500/10 text-red-400 border border-red-500/20"
+          className={`mb-4 px-4 py-2.5 rounded-xl text-sm border ${
+            serverMsg.type === "success"
+              ? "bg-green-500/10 text-green-400 border-green-500/20"
+              : "bg-red-500/10 text-red-400 border-red-500/20"
           }`}
         >
-          {msg.text}
+          {serverMsg.text}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={formik.handleSubmit} noValidate className="space-y-4">
+        {/* Product ID */}
         <div>
           <label className="block text-gray-400 text-xs uppercase tracking-widest mb-1.5">
             Product ID
           </label>
           <input
-            placeholder="Product ID"
-            value={form.productId}
-            onChange={(e) => setForm({ ...form, productId: e.target.value })}
-            className={inputClass}
+            name="productId"
+            value={formik.values.productId}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            placeholder="Product ID from admin list"
+            className={`${inputBase} ${
+              e("productId")
+                ? "border-red-500/50 focus:border-red-500"
+                : "border-white/10 focus:border-white/30"
+            }`}
           />
+          <FieldError msg={e("productId")} />
         </div>
 
+        {/* User Name */}
         <div>
           <label className="block text-gray-400 text-xs uppercase tracking-widest mb-1.5">
             User Name
           </label>
           <input
-            placeholder="User Name"
-            value={form.userName}
-            onChange={(e) => setForm({ ...form, userName: e.target.value })}
-            className={inputClass}
+            name="userName"
+            value={formik.values.userName}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            placeholder="John D."
+            className={`${inputBase} ${
+              e("userName")
+                ? "border-red-500/50 focus:border-red-500"
+                : "border-white/10 focus:border-white/30"
+            }`}
           />
+          <FieldError msg={e("userName")} />
         </div>
 
+        {/* Rating — interactive star picker */}
         <div>
-          <label className="block text-gray-400 text-xs uppercase tracking-widest mb-1.5">
+          <label className="block mb-2 text-xs tracking-widest text-gray-400 uppercase">
             Rating
           </label>
-          <select
-            value={form.rating}
-            onChange={(e) => setForm({ ...form, rating: e.target.value })}
-            className={inputClass}
-          >
-            {[5, 4, 3, 2, 1].map((n) => (
-              <option key={n} value={n}>
-                {n} stars
-              </option>
-            ))}
-          </select>
+          <StarPicker
+            value={formik.values.rating}
+            onChange={(val) => formik.setFieldValue("rating", val)}
+            onBlur={() => formik.setFieldTouched("rating", true)}
+          />
+          <FieldError msg={e("rating")} />
         </div>
 
+        {/* Comment */}
         <div>
           <label className="block text-gray-400 text-xs uppercase tracking-widest mb-1.5">
             Comment
           </label>
           <textarea
-            placeholder="Comment"
-            value={form.comment}
-            onChange={(e) => setForm({ ...form, comment: e.target.value })}
+            name="comment"
+            value={formik.values.comment}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            placeholder="Share your experience..."
             rows={3}
-            className={`${inputClass} resize-none`}
+            className={`${inputBase} resize-none ${
+              e("comment")
+                ? "border-red-500/50 focus:border-red-500"
+                : "border-white/10 focus:border-white/30"
+            }`}
           />
+          <div className="flex justify-between mt-1">
+            <FieldError msg={e("comment")} />
+            <p className="ml-auto text-xs text-gray-600">
+              {formik.values.comment.length}/500
+            </p>
+          </div>
         </div>
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={formik.isSubmitting}
           className="w-full py-3 text-sm font-bold text-black transition bg-white rounded-xl hover:bg-gray-100 disabled:opacity-50"
         >
-          {loading ? "Adding..." : "Add Review"}
+          {formik.isSubmitting ? "Adding..." : "Add Review"}
         </button>
       </form>
     </div>
   );
 }
 
-/* ── REVIEWS LIST ── */
+// ── REVIEWS LIST ───────────────────────────────────────────────────────────────
 export function ReviewsList() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -231,7 +319,6 @@ export function ReviewsList() {
       )}
 
       {reviews.map((r) => {
-        // Derive safe primitive strings BEFORE rendering — never pass raw API values to JSX
         const userName = getUserName(r);
         const productInfo = getProductInfo(r);
         const comment = typeof r.comment === "string" ? r.comment : "";
@@ -263,12 +350,9 @@ export function ReviewsList() {
               </div>
             ) : (
               <div className="flex items-start gap-3">
-                {/* Avatar */}
                 <div className="flex items-center justify-center flex-shrink-0 text-sm font-semibold text-white rounded-full w-9 h-9 bg-white/10">
                   {userName.charAt(0).toUpperCase()}
                 </div>
-
-                {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <p className="text-sm font-semibold text-white truncate">
@@ -294,9 +378,7 @@ export function ReviewsList() {
                       </svg>
                     </button>
                   </div>
-
                   <Stars rating={r.rating} />
-
                   {comment && (
                     <p className="text-sm text-gray-400 mt-1.5 leading-relaxed">
                       {comment}
